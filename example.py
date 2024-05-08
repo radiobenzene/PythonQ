@@ -16,7 +16,7 @@ IMG_NAME = 'barbara.bmp'
 orig_img = cv2.cvtColor(cv2.imread(IMG_NAME, cv2.IMREAD_GRAYSCALE), cv2.COLOR_BGR2RGB)
 
 # extract only luma channel
-orig_img = orig_img[:,:,0]
+orig_img = orig_img[:,:,2]
 
 # add gaussian blur
 blur_img_1 = cv2.GaussianBlur(orig_img, (23, 23), sigmaX=1.5)

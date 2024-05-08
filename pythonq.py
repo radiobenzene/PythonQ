@@ -58,12 +58,16 @@ def calculate_patch_q(args):
 '''
 def calculate_q(img, delta=0.001, patch_size=(8, 8)):
     img = (img / 255.0).astype(np.float64)
+
+    # pad image to make dimensions divisible by patch size
+    pad_height = patch_size[0] - img.shape[0] % patch_size[0]
+    pad_width = patch_size[1] - img.shape[1] % patch_size[1]
+    img = np.pad(img, ((0, pad_height), (0, pad_width)), mode='constant')
     
     # divide image into patches
     patches = view_as_blocks(img, patch_size)
     local_q = np.zeros((patches.shape[0], patches.shape[1]))
     total_patches = (patches.shape[0] // patch_size[0]) * (patches.shape[1] // patch_size[1])
-    print("Total patches: ", total_patches)
     
     threshold = get_threshold(delta, patch_size[0])
     patches_reshaped = patches.reshape(-1, patch_size[0], patch_size[1])

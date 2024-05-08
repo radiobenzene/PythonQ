@@ -17,8 +17,3 @@ In addition see [example.py] for reproducing the pictures below.
 
 ## Noising examples
 ![noising examples](q_metric_noise.png)
-
-
-# Task List
-- [X] Extract Luma Channel from image
-- [ ] Add padding for images with non-divisible H, W
