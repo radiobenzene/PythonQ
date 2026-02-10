@@ -10,6 +10,9 @@ TEST_FOLDER = Path("testImages")
 # Specify delta
 DELTA = 0.001
 
+# Specify patch size
+PATCH_SIZE = 4
+
 # Check list of supported extensions
 exts = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 
@@ -25,7 +28,7 @@ for p in sorted(TEST_FOLDER.iterdir()):
         continue
 
     # Measure Q
-    q = calculateQ(img, DELTA)
+    q = calculateQ(img, DELTA, patch_size=PATCH_SIZE)
 
     # As sanity, print out Q
     print(f"{p.name}\t{q}")
