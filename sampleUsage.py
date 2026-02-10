@@ -1,17 +1,31 @@
 from QMetricFunctions import *
 import numpy as np
+from pathlib import Path
+import cv2
 from PIL import Image
 
-# Specifying image name
-IMG_NAME = '/media/udit/Backup_Files/PythonQ/testImages/I_GT.png'
+# Image Folder Path
+TEST_FOLDER = Path("testImages")
 
-# img = Image.open(IMG_NAME)
-# arr = np.array(img)
+# Specify delta
+DELTA = 0.001
 
-img = cv2.imread(IMG_NAME, cv2.IMREAD_GRAYSCALE)
+# Check list of supported extensions
+exts = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 
+for p in sorted(TEST_FOLDER.iterdir()):
+    if p.suffix.lower() not in exts:
+        continue
+    
+    # Read the image in grayscale
+    img = cv2.imread(str(p), cv2.IMREAD_GRAYSCALE)
 
-# Measure Q
-Q = calculateQ(img, 0.001)
+    # Check if the image was loaded successfully
+    if img is None:
+        continue
 
-print('Q = ', Q)
+    # Measure Q
+    q = calculateQ(img, DELTA)
+
+    # As sanity, print out Q
+    print(f"{p.name}\t{q}")
