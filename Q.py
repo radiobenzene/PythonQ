@@ -4,6 +4,7 @@ import cv2
 import numpy as np
 from skimage.util import view_as_blocks
 from concurrent.futures import ProcessPoolExecutor
+from pathlib import Path
 
 
 '''
@@ -115,7 +116,27 @@ def calculateQ(img, delta, patch_size=8):
 
     return q_metric
 
+# Function to pad the image
+def PadImagePerPatch(I_gray, patch_size):
+
+    h, w = I_gray.shape
+    pad_h = (patch_size - (h % patch_size)) % patch_size
+    pad_w = (patch_size - (w % patch_size)) % patch_size
+
+    # Pad the image with zeros
+    padded_image = cv2.copyMakeBorder(I_gray, 0, pad_h, 0, pad_w, cv2.BORDER_REFLECT)
+
+    return padded_image
+
+
 def main():
+    
+    # All image extensions
+    IMG_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
+
+    # All video extensions
+    VIDEO_EXTS = {".mp4", ".avi", ".mkv", ".mov", ".flv", ".wmv"}
+
     # Init parser
     parser = argparse.ArgumentParser(description="Measure Q for media files")
 
@@ -125,29 +146,62 @@ def main():
     parser.add_argument("-p", "--patch_size", type=int, default=8, help="Patch size")
     args = parser.parse_args()
 
-    # Read the image
-    img = cv2.imread(args.input, cv2.IMREAD_GRAYSCALE)
+    path = Path(args.input)
+    ext = path.suffix.lower()
 
-    # Check if the image is divisible by the patch size
-    if img.shape[0] % args.patch_size != 0 or img.shape[1] % args.patch_size != 0:
+    # Check if the media file is an image
+    if ext in IMG_EXTS:
+        # Read the image
+        img = cv2.imread(args.input, cv2.IMREAD_GRAYSCALE)
+
+        # Check if image is loaded properly
+        if img is None:
+            print(f"Error: Could not read image {args.input}")
+            return
         
-        # Pad image to adjust for patch size
-        pad_h = (args.patch_size - (img.shape[0] % args.patch_size)) % args.patch_size
-        pad_w = (args.patch_size - (img.shape[1] % args.patch_size)) % args.patch_size
+        # Pad the image if necessary
+        img = PadImagePerPatch(img, args.patch_size)
 
-        # Zero pad the image
-        img = cv2.copyMakeBorder(img, 0, pad_h, 0, pad_w, cv2.BORDER_REFLECT)
+        # Measure Q
+        Q_value = calculateQ(img, args.delta, patch_size=args.patch_size)
 
-    # Check if the image was loaded successfully
-    if img is None:
-        print(f"Error: Could not read image {args.input}")
-        return
+        # Print out Q
+        print(Q_value)
 
-    # Measure Q
-    Q_value = calculateQ(img, args.delta, patch_size=args.patch_size)
+    # Check if media file is a video
+    if ext in VIDEO_EXTS:
+        # Read the video
+        vid = cv2.VideoCapture(args.input)
 
-    # Print out Q
-    print(f"Q: {Q_value}")
+        # Check if video is loaded properly
+        if not vid.isOpened():
+            print(f"Error: Could not read video {args.input}")
+            return
+        
+        # Initialize Q values list
+        Q_vals = 0.0
+        counter = 0
 
+        while 1:
+            # Get frame
+            ret, frame = vid.read()
+
+            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            
+            # Pad the frame
+            gray_frame = PadImagePerPatch(gray_frame, args.patch_size)
+
+            # Measure Q for the frame
+            Q_value = calculateQ(gray_frame, args.delta, patch_size=args.patch_size)
+
+            # Increment global Q and counter
+            Q_vals += Q_value
+            counter += 1
+
+            vid.release()
+
+            # Get average Q over all frames
+            print(Q_vals / counter)
+            return 
 if __name__ == "__main__":
     main()
