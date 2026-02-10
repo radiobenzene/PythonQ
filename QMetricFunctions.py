@@ -47,11 +47,9 @@ Function to calculate local coherence
 
 def calculateLocalCoherence(patch):
     # Calculate gradient
-    gx, gy = np.gradient(patch)
+    gx, gy = np.gradient(patch, edge_order=2)
 
-    gx = gx.ravel()
-    gy = gy.ravel()
-    G = np.column_stack((gx, gy))
+    G = np.column_stack((gx.ravel(), gy.ravel()))
 
     # Calculate SVD values
     svd_value = np.linalg.svd(np.dot(G.T, G), compute_uv=False)
@@ -59,7 +57,7 @@ def calculateLocalCoherence(patch):
     s1 = svd_value[0]
     s2 = svd_value[1]
 
-    R = (s1 - s2) / (s1 + s2 + np.finfo(np.float64).eps)
+    R = (s1 - s2) / (s1 + s2 + 1e-6)
 
     coherence = R
 
