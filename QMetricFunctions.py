@@ -5,15 +5,15 @@ from concurrent.futures import ProcessPoolExecutor
 
 '''
 Function to calculate local metric
-'''
+    input: Image Patch
+    output: local metric for the patch
 
+'''
 def calculateLocalMetric(patch):
     # Calculate gradient
-    gx, gy = np.gradient(patch)
+    gx, gy = np.gradient(patch, edge_order=2)
 
-    gx = gx.ravel()
-    gy = gy.ravel()
-    G = np.column_stack((gx, gy))
+    G = np.column_stack((gx.ravel(), gy.ravel()))
 
     # Calculate SVD values
     svd_value = np.linalg.svd(G, compute_uv=False)
