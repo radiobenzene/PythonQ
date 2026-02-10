@@ -66,12 +66,14 @@ def calculateLocalCoherence(patch):
 '''
 Function to calculate metric Q
 '''
-def calculateQ(img, delta):
+def calculateQ(img, delta, patch_size=8):
     # Initializing patch size as 8x8
-    patch_size = (8, 8)
+    #patch_size = (8, 8)
+    patch_size = (patch_size, patch_size)
 
     # Convert image to double
-    img = (img/255.0).astype(np.float64)
+    #img = (img/255.0).astype(np.float64)
+    img = img.astype(np.float64) / np.iinfo(img.dtype).max
 
     # Divide image into patches
     patches = view_as_blocks(img, patch_size)
