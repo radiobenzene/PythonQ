@@ -167,6 +167,7 @@ def main():
 
         # Print out Q
         print(Q_value)
+    
 
     # Check if media file is a video
     if ext in VIDEO_EXTS:
@@ -182,9 +183,12 @@ def main():
         Q_vals = 0.0
         counter = 0
 
-        while 1:
+        while True:
             # Get frame
             ret, frame = vid.read()
+
+            if not ret:
+                break
 
             gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
             
@@ -193,15 +197,21 @@ def main():
 
             # Measure Q for the frame
             Q_value = calculateQ(gray_frame, args.delta, patch_size=args.patch_size)
+            print(f"Frame {counter}: Q = {Q_value}")
 
             # Increment global Q and counter
             Q_vals += Q_value
             counter += 1
 
-            vid.release()
+        vid.release()
 
             # Get average Q over all frames
-            print(Q_vals / counter)
-            return 
+        average_Q = Q_vals / counter
+        print(average_Q)
+
+        # Return average Q
+        # return average_Q
+        
+            
 if __name__ == "__main__":
     main()
