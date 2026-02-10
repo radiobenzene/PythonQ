@@ -121,12 +121,22 @@ def main():
 
     # Add arguments
     parser.add_argument("input", type=str, help="Path to the input image")
-    parser.add_argument("delta", type=float, help="Delta value")
-    parser.add_argument("patch_size", type=int, help="Patch size")
+    parser.add_argument("-d", "--delta", type=float, default=0.001, help="Delta for threshold calculation")
+    parser.add_argument("-p", "--patch_size", type=int, default=8, help="Patch size")
     args = parser.parse_args()
 
     # Read the image
     img = cv2.imread(args.input, cv2.IMREAD_GRAYSCALE)
+
+    # Check if the image is divisible by the patch size
+    if img.shape[0] % args.patch_size != 0 or img.shape[1] % args.patch_size != 0:
+        
+        # Pad image to adjust for patch size
+        pad_h = (args.patch_size - (img.shape[0] % args.patch_size)) % args.patch_size
+        pad_w = (args.patch_size - (img.shape[1] % args.patch_size)) % args.patch_size
+
+        # Zero pad the image
+        img = cv2.copyMakeBorder(img, 0, pad_h, 0, pad_w, cv2.BORDER_REFLECT)
 
     # Check if the image was loaded successfully
     if img is None:
