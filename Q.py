@@ -5,6 +5,7 @@ import numpy as np
 from skimage.util import view_as_blocks
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from tqdm import tqdm
 
 
 '''
@@ -169,10 +170,16 @@ def main():
         print(Q_value)
     
 
+
     # Check if media file is a video
     if ext in VIDEO_EXTS:
         # Read the video
         vid = cv2.VideoCapture(args.input)
+
+        # Get total frames
+        total_frames = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
+        total_frames = total_frames if total_frames > 0 else None
+        
 
         # Check if video is loaded properly
         if not vid.isOpened():
@@ -183,26 +190,30 @@ def main():
         Q_vals = 0.0
         counter = 0
 
-        while True:
-            # Get frame
-            ret, frame = vid.read()
+        # Init progress bar
+        with tqdm(total=total_frames, desc="Processing Video", dynamic_ncols=True, unit="frame") as pbar:
+            while True:
+                # Get frame
+                ret, frame = vid.read()
 
-            if not ret:
-                break
+                if not ret:
+                    break
 
-            gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            
-            # Pad the frame
-            gray_frame = PadImagePerPatch(gray_frame, args.patch_size)
+                gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                
+                # Pad the frame
+                gray_frame = PadImagePerPatch(gray_frame, args.patch_size)
 
-            # Measure Q for the frame
-            Q_value = calculateQ(gray_frame, args.delta, patch_size=args.patch_size)
-            print(f"Frame {counter}: Q = {Q_value}")
+                # Measure Q for the frame
+                Q_value = calculateQ(gray_frame, args.delta, patch_size=args.patch_size)
+                #print(f"Frame {counter}: Q = {Q_value}")
 
-            # Increment global Q and counter
-            Q_vals += Q_value
-            counter += 1
+                # Increment global Q and counter
+                Q_vals += Q_value
+                counter += 1
+                pbar.update(1)
 
+        pbar.close()
         vid.release()
 
             # Get average Q over all frames

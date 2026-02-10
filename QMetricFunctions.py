@@ -1,6 +1,7 @@
 import numpy as np
 from skimage.util import view_as_blocks
 import cv2
+import os
 from concurrent.futures import ProcessPoolExecutor
 
 '''
@@ -90,7 +91,7 @@ def calculateQ(img, delta, patch_size=8):
     threshold = getThreshold(delta, patch_size[0])
 
     # Calculate local coherence based on formula
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
         local_coherence = np.array(list(executor.map(calculateLocalCoherence, patches.reshape(-1, patch_size[0], patch_size[1]))))
         local_coherence = local_coherence.reshape(patches.shape[0], patches.shape[1])
 
@@ -101,13 +102,13 @@ def calculateQ(img, delta, patch_size=8):
     local_metric = np.zeros(anisotropic_patches.shape)
 
     # Calculate local metric for each patch
-    with ProcessPoolExecutor() as executor:
+    with ProcessPoolExecutor(max_workers=os.cpu_count()) as executor:
         local_metric[anisotropic_patches] = list(executor.map(calculateLocalMetric, patches.reshape(-1, patch_size[0], patch_size[1])[anisotropic_patches]))
 
     summed_value = local_metric.sum()
 
     local_metric = local_metric.reshape((patches.shape[0], patches.shape[1]))
 
-    q_metric = summed_value.sum() / local_metric.size #patches.shape[0] #16
+    q_metric = summed_value.sum() / local_metric.size
 
     return q_metric
