@@ -5,19 +5,15 @@ from PIL import Image
 # Specifying image name
 IMG_NAME = '/media/udit/Backup_Files/PythonQ/testImages/I_GT.png'
 
-# Read image
 img = Image.open(IMG_NAME)
+arr = np.array(img)
 
-# Convert image to YUV color 
-#img = img.convert('YCbCr')
+print("PIL mode:", img.mode)
+print("dtype:", arr.dtype, "shape:", arr.shape)
+print("min/max:", arr.min(), arr.max())
 
-# Extract only Y channel
-#img = img.split()[0]
-
-# Convert to numpy array
-img_np = np.array(img)
 
 # Measure Q
-Q = calculateQ(img_np, 0.001)
+#Q = calculateQ(arr, 0.001)
 
-print('Q = ', Q)
+#print('Q = ', Q)

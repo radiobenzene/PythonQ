@@ -21,7 +21,7 @@ def calculateLocalMetric(patch):
     s1 = svd_value[0]
     s2 = svd_value[1]
 
-    R = (s1 - s2) / (s1 + s2 + 1e-6)
+    R = (s1 - s2) / (s1 + s2 + 1e-8)
 
     q_metric = s1 * R
 
@@ -57,7 +57,7 @@ def calculateLocalCoherence(patch):
     s1 = svd_value[0]
     s2 = svd_value[1]
 
-    R = (s1 - s2) / (s1 + s2 + 1e-6)
+    R = (s1 - s2) / (s1 + s2 + 1e-8)
 
     coherence = R
 
@@ -106,6 +106,6 @@ def calculateQ(img, delta):
 
     local_metric = local_metric.reshape((patches.shape[0], patches.shape[1]))
 
-    q_metric = summed_value.sum() / patches.shape[0] #16
+    q_metric = summed_value.sum() / local_metric.size #patches.shape[0] #16
 
     return q_metric
