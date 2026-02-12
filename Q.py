@@ -148,15 +148,14 @@ def main():
     parser = argparse.ArgumentParser(description="Measure Q for media files")
 
     # Add arguments
-    parser.add_argument("input", type=str, help="Path to the input image")
+    parser.add_argument("input", type=str, nargs="?", help="Path to the input image")
     parser.add_argument("-f", "--folder", type=str, help= "Path to folder containing images")
     parser.add_argument("-c", "--csv", type=str, help="Path to save results as a csv")
     parser.add_argument("-d", "--delta", type=float, default=0.001, help="Delta for threshold calculation")
     parser.add_argument("-p", "--patch_size", type=int, default=8, help="Patch size")
     args = parser.parse_args()
 
-    path = Path(args.input)
-    ext = path.suffix.lower()
+    #ext = path.suffix.lower()
 
     # Folder handling
     if args.folder:
@@ -226,6 +225,8 @@ def main():
 
 
     if args.input:
+        path = Path(args.input)
+        ext = path.suffix.lower()
         # Check if the media file is an image
         if ext in IMG_EXTS:
             # Read the image
@@ -301,6 +302,8 @@ def main():
 
             # Return average Q
             # return average_Q
+    else:
+        parser.print_help()
         
             
 if __name__ == "__main__":
