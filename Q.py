@@ -6,7 +6,7 @@ from skimage.util import view_as_blocks
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from tqdm import tqdm
-
+import csv
 
 '''
 Function to calculate local metric
@@ -132,6 +132,12 @@ def PadImagePerPatch(I_gray, patch_size):
 
 def main():
     
+    # Specify error codes
+    ERROR_INVALID_FOLDER = -1
+    ERROR_INVALID_IMAGE = -2
+    ERROR_INVALID_VIDEO = -3
+    ERROR_INVALID_CSV = -4
+
     # All image extensions
     IMG_EXTS = {".png", ".jpg", ".jpeg", ".bmp", ".tif", ".tiff"}
 
@@ -143,6 +149,8 @@ def main():
 
     # Add arguments
     parser.add_argument("input", type=str, help="Path to the input image")
+    parser.add_argument("-f", "--folder", type=str, help= "Path to folder containing images")
+    parser.add_argument("-c", "--csv", type=str, help="Path to save results as a csv")
     parser.add_argument("-d", "--delta", type=float, default=0.001, help="Delta for threshold calculation")
     parser.add_argument("-p", "--patch_size", type=int, default=8, help="Patch size")
     args = parser.parse_args()
@@ -150,78 +158,149 @@ def main():
     path = Path(args.input)
     ext = path.suffix.lower()
 
-    # Check if the media file is an image
-    if ext in IMG_EXTS:
-        # Read the image
-        img = cv2.imread(args.input, cv2.IMREAD_GRAYSCALE)
+    # Folder handling
+    if args.folder:
+        # Get path
+        folder_path = Path(args.folder)
 
-        # Check if image is loaded properly
-        if img is None:
-            print(f"Error: Could not read image {args.input}")
-            return
+        # Check if path is actually a folder
+        if not folder_path.is_dir(): 
+            print(f"Error: {args.folder} is not a valid folder path")
+            return ERROR_INVALID_FOLDER
         
-        # Pad the image if necessary
-        img = PadImagePerPatch(img, args.patch_size)
-
-        # Measure Q
-        Q_value = calculateQ(img, args.delta, patch_size=args.patch_size)
-
-        # Print out Q
-        print(Q_value)
-    
-
-
-    # Check if media file is a video
-    if ext in VIDEO_EXTS:
-        # Read the video
-        vid = cv2.VideoCapture(args.input)
-
-        # Get total frames
-        total_frames = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
-        total_frames = total_frames if total_frames > 0 else None
+        # Get the valid images
+        image_files = [f for f in folder_path.iterdir() if f.suffix.lower() in IMG_EXTS]
+        if not image_files:
+            print(f"Error: No valid image files found in folder {args.folder}")
+            return ERROR_INVALID_FOLDER
         
-
-        # Check if video is loaded properly
-        if not vid.isOpened():
-            print(f"Error: Could not read video {args.input}")
-            return
-        
-        # Initialize Q values list
-        Q_vals = 0.0
+        res = []
+        overall_Q = 0.0
         counter = 0
 
-        # Init progress bar
-        with tqdm(total=total_frames, desc="Processing Video", dynamic_ncols=True, unit="frame") as pbar:
-            while True:
-                # Get frame
-                ret, frame = vid.read()
+        print(f"Processing folder: {folder_path}")
+        for img_path in tqdm(image_files, desc="Processing Images", dynamic_ncols=True, unit="image"):
+            
+            # Read the image
+            img = cv2.imread(str(img_path), cv2.IMREAD_GRAYSCALE)
 
-                if not ret:
-                    break
+            # Check if image is loaded properly
+            if img is None:
+                print(f"Warning: Could not read image {img_path}, skipping.")
+                continue
 
-                gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                
-                # Pad the frame
-                gray_frame = PadImagePerPatch(gray_frame, args.patch_size)
+            # Pad the imahge
+            img = PadImagePerPatch(img, args.patch_size)
 
-                # Measure Q for the frame
-                Q_value = calculateQ(gray_frame, args.delta, patch_size=args.patch_size)
-                #print(f"Frame {counter}: Q = {Q_value}")
+            # Measure Q
+            Q_value = calculateQ(img, args.delta, patch_size=args.patch_size)
 
-                # Increment global Q and counter
-                Q_vals += Q_value
-                counter += 1
-                pbar.update(1)
+            # Store in array
+            res.append((img_path.name, Q_value))
+            overall_Q += Q_value
+            counter += 1
 
-        pbar.close()
-        vid.release()
+        # Get average Q
+        average_Q = overall_Q / counter if counter > 0 else 0.0
+        print(f"Average Q for folder {folder_path}: {average_Q}")
 
-            # Get average Q over all frames
-        average_Q = Q_vals / counter
-        print(average_Q)
+        # Check if csv is needed
+        if args.csv:
+            try:
+                with open(args.csv, mode='w', newline='') as fp:
+                    writer = csv.writer(fp)
+                    writer.writerow(["Image", "Q"])
+                    writer.writerows(res)
 
-        # Return average Q
-        # return average_Q
+                    # May add average Q at the end
+                    writer.writerow(["Average", average_Q])
+
+                print(f"Results saved to {args.csv}")
+            except Exception as e:
+                print(f"Error: Could not write to CSV file {args.csv}. Exception: {e}")
+                return ERROR_INVALID_CSV
+        
+        return average_Q
+
+
+
+
+    if args.input:
+        # Check if the media file is an image
+        if ext in IMG_EXTS:
+            # Read the image
+            img = cv2.imread(args.input, cv2.IMREAD_GRAYSCALE)
+
+            # Check if image is loaded properly
+            if img is None:
+                print(f"Error: Could not read image {args.input}")
+                return
+            
+            # Pad the image if necessary
+            img = PadImagePerPatch(img, args.patch_size)
+
+            # Measure Q
+            Q_value = calculateQ(img, args.delta, patch_size=args.patch_size)
+
+            # Print out Q
+            print(Q_value)
+
+            # Return Q
+            return Q_value
+        
+
+
+        # Check if media file is a video
+        if ext in VIDEO_EXTS:
+            # Read the video
+            vid = cv2.VideoCapture(args.input)
+
+            # Get total frames
+            total_frames = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
+            total_frames = total_frames if total_frames > 0 else None
+            
+
+            # Check if video is loaded properly
+            if not vid.isOpened():
+                print(f"Error: Could not read video {args.input}")
+                return
+            
+            # Initialize Q values list
+            Q_vals = 0.0
+            counter = 0
+
+            # Init progress bar
+            with tqdm(total=total_frames, desc="Processing Video", dynamic_ncols=True, unit="frame") as pbar:
+                while True:
+                    # Get frame
+                    ret, frame = vid.read()
+
+                    if not ret:
+                        break
+
+                    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    
+                    # Pad the frame
+                    gray_frame = PadImagePerPatch(gray_frame, args.patch_size)
+
+                    # Measure Q for the frame
+                    Q_value = calculateQ(gray_frame, args.delta, patch_size=args.patch_size)
+                    #print(f"Frame {counter}: Q = {Q_value}")
+
+                    # Increment global Q and counter
+                    Q_vals += Q_value
+                    counter += 1
+                    pbar.update(1)
+
+            pbar.close()
+            vid.release()
+
+                # Get average Q over all frames
+            average_Q = Q_vals / counter
+            print(average_Q)
+
+            # Return average Q
+            # return average_Q
         
             
 if __name__ == "__main__":
