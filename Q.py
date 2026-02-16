@@ -6,7 +6,9 @@ from skimage.util import view_as_blocks
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from tqdm import tqdm
+from video_utils import *
 import csv
+import matplotlib.pyplot as plt
 
 '''
 Function to calculate local metric
@@ -153,6 +155,7 @@ def main():
     parser.add_argument("-c", "--csv", type=str, help="Path to save results as a csv")
     parser.add_argument("-d", "--delta", type=float, default=0.001, help="Delta for threshold calculation")
     parser.add_argument("-p", "--patch_size", type=int, default=8, help="Patch size")
+    parser.add_argument("-r", "--run-diag", action="store_true", help="Run diagnostic tests")
     args = parser.parse_args()
 
     #ext = path.suffix.lower()
@@ -222,8 +225,6 @@ def main():
         return average_Q
 
 
-
-
     if args.input:
         path = Path(args.input)
         ext = path.suffix.lower()
@@ -249,47 +250,42 @@ def main():
             # Return Q
             return Q_value
         
-
-
         # Check if media file is a video
         if ext in VIDEO_EXTS:
+            
+            if args.run_diag:
+                Q_vals = []
+                Q_sum = 0.0
+            else:
+                Q_sum = 0.0
+
             # Read the video
-            vid = cv2.VideoCapture(args.input)
+            vid = VideoUtils(args.input).start(grayscale=True)
 
             # Get total frames
-            total_frames = int(vid.get(cv2.CAP_PROP_FRAME_COUNT))
+            total_frames = vid.total_frames
             total_frames = total_frames if total_frames > 0 else None
             
-
-            # Check if video is loaded properly
-            if not vid.isOpened():
-                print(f"Error: Could not read video {args.input}")
-                return
-            
             # Initialize Q values list
-            Q_vals = 0.0
+            #Q_vals = 0.0
             counter = 0
 
             # Init progress bar
             with tqdm(total=total_frames, desc="Processing Video", dynamic_ncols=True, unit="frame") as pbar:
-                while True:
-                    # Get frame
-                    ret, frame = vid.read()
-
-                    if not ret:
-                        break
-
-                    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                for gray_frame in vid:
                     
                     # Pad the frame
                     gray_frame = PadImagePerPatch(gray_frame, args.patch_size)
 
                     # Measure Q for the frame
                     Q_value = calculateQ(gray_frame, args.delta, patch_size=args.patch_size)
+
+                    if args.run_diag:
+                        Q_vals.append(Q_value)
                     #print(f"Frame {counter}: Q = {Q_value}")
 
                     # Increment global Q and counter
-                    Q_vals += Q_value
+                    Q_sum += Q_value
                     counter += 1
                     pbar.update(1)
 
@@ -297,9 +293,23 @@ def main():
             vid.release()
 
                 # Get average Q over all frames
-            average_Q = Q_vals / counter
+            average_Q = Q_sum / counter
             print(average_Q)
 
+            # Run diagnositics if flag is true
+            if args.run_diag:
+                plt.figure(figsize=(12, 6))
+                plt.plot(range(len(Q_vals)), Q_vals, linewidth=0.8)
+                plt.xlabel('Frame')
+                plt.ylabel('Q')
+                #plt.title(f'Q Metric per Frame - {path.name}')
+                plt.grid(True, alpha=0.3)
+                plt.axhline(y=average_Q, color='r', linestyle='--', linewidth=1, label=f'Average Q = {average_Q:.4f}')
+                plt.legend()
+                plt.tight_layout()
+                plt.show()
+
+                return average_Q
             # Return average Q
             # return average_Q
     else:
