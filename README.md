@@ -61,5 +61,6 @@ For an HD footage, use a patch size of 32 or above.
 # Useful Links
 - [MATLAB Implementation](https://github.com/radiobenzene/MetricQ)
 - [Metric Q Paper](https://ieeexplore.ieee.org/abstract/document/5484579)
-- [Metric Q As a Loss for Deblurring](https://github.com/aurangau/MMSP2024)
+- [Metric Q As a Loss for Deblurring (CODE)](https://github.com/aurangau/MMSP2024)
+- [Metric Q As a Loss for Deblurring (PAPER)](https://ieeexplore.ieee.org/abstract/document/10743912)
 - [Tensorflow Implementation](https://github.com/aurangau/QSharpNet/blob/main/correctedQ_TF.py)
