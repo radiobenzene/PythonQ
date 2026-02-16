@@ -1,0 +1,4 @@
+name: metricQ_official
+channels:
+  - defaults
+prefix: /home/udit/Documents/miniconda3/envs/metricQ_official
